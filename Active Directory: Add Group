@@ -2,7 +2,7 @@
 $folderPath = Read-Host "Enter the directory path"
 
 # Specify the account (Domain Admins in this case) and permissions
-$account = "HOLLANDSPIES\Domain Admins"
+$account = "Domain\Domain Admins"
 $permissions = "FullControl"
 
 # Get the folder object
