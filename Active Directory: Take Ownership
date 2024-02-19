@@ -1,0 +1,22 @@
+# Prompt user for directory path
+$directory = Read-Host "Enter the directory path"
+
+# Check if the directory exists
+if (Test-Path $directory -PathType Container) {
+    # Get all files and folders within the directory
+    $items = Get-ChildItem -Path $directory -Recurse
+
+    # Run Takeown command for each item
+    foreach ($item in $items) {
+        try {
+            Start-Process -FilePath "Takeown" -ArgumentList "/f", "$($item.FullName)", "/a", "/r", "/d", "y" -Wait -NoNewWindow
+            Write-Host "Takeown command executed successfully for $($item.FullName)."
+        } catch {
+            Write-Host "Error executing Takeown command for $($item.FullName): $_"
+        }
+    }
+
+    Write-Host "Takeown commands executed successfully for all files and folders in $directory."
+} else {
+    Write-Host "Directory does not exist. Please enter a valid directory path."
+}
