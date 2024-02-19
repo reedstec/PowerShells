@@ -1,0 +1,7 @@
+$key=(Get-WmiObject -Class SoftwareLicensingService).OA3xOriginalProductKey
+
+iex "cscript /b C:\windows\system32\slmgr.vbs /upk"
+
+iex "cscript /b C:\windows\system32\slmgr.vbs /ipk $key"
+
+iex "cscript /b C:\windows\system32\slmgr.vbs /ato"
