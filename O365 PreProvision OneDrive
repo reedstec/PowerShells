@@ -1,6 +1,6 @@
 $Credential = Get-Credential
 Connect-MsolService -Credential $Credential
-Connect-SPOService -Credential $Credential -Url https://portumnapastry-admin.sharepoint.com
+Connect-SPOService -Credential $Credential -Url https://tenant-admin.sharepoint.com
 
 $list = @()
 #Counters
