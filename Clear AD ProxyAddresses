@@ -1,0 +1,23 @@
+# Import the Active Directory module
+Import-Module ActiveDirectory
+
+# Specify the OU path
+$ouPath = "OU=YourOU,DC=YourDomain,DC=com"
+
+# Get all users in the specified OU with the proxyAddresses attribute
+$users = Get-ADUser -Filter * -SearchBase $ouPath -Properties proxyAddresses
+
+# Iterate through each user and remove all values from proxyAddresses
+foreach ($user in $users) {
+    $currentProxyAddresses = $user.proxyAddresses
+
+    # Check if the user has any values in proxyAddresses
+    if ($currentProxyAddresses) {
+        # Remove all values from proxyAddresses
+        Set-ADUser -Identity $user.SamAccountName -Clear proxyAddresses
+
+        Write-Host "Removed all values from proxyAddresses for $($user.SamAccountName)"
+    } else {
+        Write-Host "$($user.SamAccountName) does not have any values in proxyAddresses"
+    }
+}
