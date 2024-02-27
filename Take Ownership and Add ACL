@@ -1,0 +1,36 @@
+# Set the usernames and directory path
+$Usernames = @("Domain Admins", "SYSTEM", "CREATOR OWNER", "Additional User")
+$DirectoryPath = "C:\FILEPATH HERE"
+
+# Function to apply permissions recursively
+function Set-RecursiveAcl {
+    param (
+        [string]$Path,
+        [string[]]$Usernames
+    )
+
+    # Get all files and folders, including subfolders
+    $Items = Get-ChildItem -Path $Path -Recurse
+
+    # Loop through each item
+    foreach ($Item in $Items) {
+        # Get the ACL of the item
+        $Acl = Get-Acl -Path $Item.FullName
+
+        # Loop through each username and add them to the item with full control
+        foreach ($Username in $Usernames) {
+            $Permission = "$Username", "FullControl", "Allow"
+            $AccessRule = New-Object System.Security.AccessControl.FileSystemAccessRule($Permission)
+            $Acl.AddAccessRule($AccessRule)
+            Write-Host "User $Username has been granted full control over the item $($Item.FullName)."
+        }
+
+        # Set the modified ACL back to the item
+        Set-Acl -Path $Item.FullName -AclObject $Acl
+    }
+}
+
+# Apply permissions recursively to the main directory
+Set-RecursiveAcl -Path $DirectoryPath -Usernames $Usernames
+
+Write-Host "Permissions applied recursively to all files and folders in $DirectoryPath for users: $($Usernames -join ', ')."
