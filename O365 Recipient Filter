@@ -1,0 +1,3 @@
+Set-DynamicDistributionGroup 'AllUsers'-RecipientFilter {(-not(RecipientTypeDetailsValue -eq 'SharedMailbox')) -and (-not(RecipientTypeDetailsValue -eq 'RoomMailbox')) -and (-not(RecipientType -eq 'MailContact')) -and (-not(RecipientType -eq 'MailUniversalDistributionGroup')) -and (-not(RecipientTypeDetailsValue -eq 'EquipmentMailbox'))}
+
+Get-Recipient -RecipientPreviewFilter (get-dynamicdistributiongroup email@domain).RecipientFilter -OrganizationalUnit $group.RecipientContainer | Select Displayname,alias,PrimarySmtpAddress | Export-Csv "c:\output.csv" -Notypeinformatio
