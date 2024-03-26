@@ -1,0 +1,71 @@
+# Load SharePoint CSOM Assemblies, confirm location and correct version number
+Add-Type -Path "C:\Program Files\WindowsPowerShell\Modules\Microsoft.Online.SharePoint.PowerShell\16.0.24614.12000\Microsoft.SharePoint.Client.dll"
+Add-Type -Path "C:\Program Files\WindowsPowerShell\Modules\Microsoft.Online.SharePoint.PowerShell\16.0.24614.12000\Microsoft.SharePoint.Client.Runtime.dll"
+
+# Function to get encrypted password
+Function Get-EncryptedPassword {
+    Param(
+        [string]$FilePath
+    )
+    $EncryptedPassword = Get-Content $FilePath | ConvertTo-SecureString
+    return $EncryptedPassword
+}
+
+# Variables for Processing
+$WebUrl = "https://tenant.sharepoint.com/sites/sitename"
+$LibraryName ="Documents"
+$FolderName = "Folder"
+$SourceDirectory = "C:\Upload"
+$AdminName ="account@domain.com"
+$EncryptedPasswordFilePath = "C:\encryptedpassword.txt"
+
+# Setup Credentials to connect
+$SecurePassword = Get-EncryptedPassword -FilePath $EncryptedPasswordFilePath
+$Credentials = New-Object Microsoft.SharePoint.Client.SharePointOnlineCredentials($AdminName, $SecurePassword)
+
+# Set up the context
+$Context = New-Object Microsoft.SharePoint.Client.ClientContext($WebUrl) 
+$Context.Credentials = $Credentials
+
+# Get the Library
+$Library =  $Context.Web.Lists.GetByTitle($LibraryName)
+
+# Ensure the folder exists, and if not, create it
+$Folder = $Library.RootFolder.Folders.Add($FolderName)
+$Context.ExecuteQuery()
+
+# Iterate over files in the directory
+$Files = Get-ChildItem $SourceDirectory -File
+foreach ($File in $Files) {
+    # Get the file from disk
+    $FileStream = $File.OpenRead()
+    
+    # Append date to the filename
+    $DateSuffix = Get-Date -Format "yyyyMMdd"
+    $FileNameWithDate = $File.BaseName + "_" + $DateSuffix + $File.Extension
+    
+    # Sharepoint online upload file powershell
+    $FileCreationInfo = New-Object Microsoft.SharePoint.Client.FileCreationInformation
+    $FileCreationInfo.Overwrite = $true
+    $FileCreationInfo.ContentStream = $FileStream
+    $FileCreationInfo.URL = $FileNameWithDate
+    
+    # Add file to the folder
+    $FileUploaded = $Folder.Files.Add($FileCreationInfo)
+    
+    # Powershell upload single file to sharepoint online
+    $Context.Load($FileUploaded) 
+    $Context.ExecuteQuery()
+    
+    # Close file stream
+    $FileStream.Close()
+    
+    Write-Host "File '$FileNameWithDate' has been uploaded to '$FolderName' folder!"
+
+    # Move the local file to a folder in the source directory with appended date
+    $DestinationFolder = Join-Path $SourceDirectory "Uploaded"
+    if (-not (Test-Path $DestinationFolder)) {
+        New-Item -ItemType Directory -Path $DestinationFolder | Out-Null
+    }
+    $File | Move-Item -Destination (Join-Path $DestinationFolder ($File.BaseName + "_" + $DateSuffix + $File.Extension))
+}
