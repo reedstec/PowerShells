@@ -1,6 +1,11 @@
-# Load SharePoint CSOM Assemblies, confirm location and correct version number
-Add-Type -Path "C:\Program Files\WindowsPowerShell\Modules\Microsoft.Online.SharePoint.PowerShell\16.0.24614.12000\Microsoft.SharePoint.Client.dll"
-Add-Type -Path "C:\Program Files\WindowsPowerShell\Modules\Microsoft.Online.SharePoint.PowerShell\16.0.24614.12000\Microsoft.SharePoint.Client.Runtime.dll"
+############################################################################################################
+# One time install required prior to use
+# Install-Module -Name SharePointPnPPowerShellOnline -Force
+# Path name for "C:\Program Files\WindowsPowerShell\Modules\Sharepoint\Version\XX" needs to be updated to correct value below
+############################################################################################################
+# Load SharePoint CSOM Assemblies
+Add-Type -Path "C:\Program Files\WindowsPowerShell\Modules\SharePointPnPPowerShellOnline\3.29.2101.0\Microsoft.SharePoint.Client.dll"
+Add-Type -Path "C:\Program Files\WindowsPowerShell\Modules\SharePointPnPPowerShellOnline\3.29.2101.0\Microsoft.SharePoint.Client.Runtime.dll"
 
 # Function to get encrypted password
 Function Get-EncryptedPassword {
