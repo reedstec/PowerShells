@@ -1,0 +1,41 @@
+# Working Directory
+$OutputDirectory = "C:\temp"
+
+# Check if the directory exists, if not, create it
+If (-Not (Test-Path -Path $OutputDirectory)) {
+    New-Item -Path $OutputDirectory -ItemType Directory
+}
+
+# Create the PowerShell Script to launch the installer
+
+$scriptContent = @'
+# Define the service name
+$serviceName = "Heimdal Monitor"
+
+# Get the service status
+$service = Get-Service -Name $serviceName -ErrorAction SilentlyContinue
+
+# Check if the service is running
+if ($service -and $service.Status -eq 'Running') {
+    Write-Output "The service '$serviceName' is already running."
+} else {
+    Write-Output "The service '$serviceName' is not running. Executing command..."
+
+    # Replace the following line with the command you want to execute
+    # Example: Restart-Service -Name 'Heimdal Monitor'
+    # Note: You can replace this line with any command or script you want to run.
+    & { msiexec /qn /i "C:\Temp\Heimdal.msi" heimdalkey="PRODUCT KEY" }
+
+}
+'@
+
+# Write Script to File
+$scriptPath = 'C:\temp\HeimdalInstall.ps1'
+$scriptContent | Out-File -FilePath $scriptPath -Encoding UTF8
+
+
+# Download the file
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/reedstec/PowerShells/main/Heimdal.msi" -OutFile "$OutputDirectory\heimdal.msi"
+
+# Start Install
+Start-Process -FilePath "powershell.exe" -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File C:\temp\HeimdalInstall.ps1"
