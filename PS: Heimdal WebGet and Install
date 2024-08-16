@@ -24,6 +24,7 @@ if ($service -and $service.Status -eq 'Running') {
     # Replace the following line with the command you want to execute
     # Example: Restart-Service -Name 'Heimdal Monitor'
     # Note: You can replace this line with any command or script you want to run.
+    & { Invoke-WebRequest -Uri "https://raw.githubusercontent.com/reedstec/PowerShells/main/Heimdal.msi" -OutFile "$OutputDirectory\heimdal.msi" }
     & { msiexec /qn /i "C:\Temp\Heimdal.msi" heimdalkey="PRODUCT KEY" }
 
 }
