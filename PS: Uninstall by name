@@ -1,0 +1,9 @@
+$programName = "Heimdal Thor Agent"
+$uninstallString = (Get-WmiObject -Query "SELECT * FROM Win32_Product WHERE Name = '$programName'").Uninstall()
+
+if ($uninstallString) {
+    Start-Process -FilePath $uninstallString -ArgumentList '/quiet' -Wait
+    Write-Host "$programName has been successfully uninstalled."
+} else {
+    Write-Host "$programName is not installed."
+}
