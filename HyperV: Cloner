@@ -1,0 +1,77 @@
+Add-Type -AssemblyName System.Windows.Forms
+
+# Function to clone a VM
+function Clone-VM {
+    param (
+        [string]$OriginalVMName,
+        [string]$Suffix
+    )
+
+    # Get the original VM
+    $originalVM = Get-VM -Name $OriginalVMName
+
+    # Construct the new VM name
+    $newVMName = "$OriginalVMName$Suffix"
+
+    # Determine the new storage location
+    $originalPath = $originalVM.HardDrives[0].Path
+    $newPath = $originalPath -replace "$OriginalVMName$", $newVMName
+
+    # Export the original VM
+    $exportPath = "C:\Temp\$OriginalVMName"
+    Export-VM -Name $OriginalVMName -Path $exportPath
+
+    # Import the VM with the new name
+    Import-VM -Path "$exportPath\$OriginalVMName\$OriginalVMName.xml" -Copy -GenerateNewId -Name $newVMName
+
+    # Move the VM to the new path
+    Move-VMStorage -VMName $newVMName -DestinationStoragePath $newPath
+
+    # Clean up the export files
+    Remove-Item -Recurse -Force $exportPath
+}
+
+# Get the list of VMs in the Failover Cluster
+$vmList = Get-ClusterGroup | Where-Object { $_.GroupType -eq 'VirtualMachine' } | Select-Object -ExpandProperty Name
+
+# Create a form
+$form = New-Object System.Windows.Forms.Form
+$form.Text = "Select VM to Clone"
+$form.Width = 400
+$form.Height = 250
+
+# Create a dropdown box
+$dropdown = New-Object System.Windows.Forms.ComboBox
+$dropdown.Width = 300
+$dropdown.Location = New-Object System.Drawing.Point(50,50)
+$vmList | ForEach-Object { $dropdown.Items.Add($_) }
+$form.Controls.Add($dropdown)
+
+# Create a label and textbox for suffix
+$suffixLabel = New-Object System.Windows.Forms.Label
+$suffixLabel.Text = "Enter suffix to append:"
+$suffixLabel.Location = New-Object System.Drawing.Point(50,100)
+$form.Controls.Add($suffixLabel)
+
+$suffixBox = New-Object System.Windows.Forms.TextBox
+$suffixBox.Width = 300
+$suffixBox.Location = New-Object System.Drawing.Point(50,120)
+$form.Controls.Add($suffixBox)
+
+# Create a button to submit
+$button = New-Object System.Windows.Forms.Button
+$button.Text = "Clone VM"
+$button.Width = 100
+$button.Location = New-Object System.Drawing.Point(150,170)
+$form.Controls.Add($button)
+
+# Add button click event
+$button.Add_Click({
+    $originalVMName = $dropdown.SelectedItem
+    $suffix = $suffixBox.Text
+    Clone-VM -OriginalVMName $originalVMName -Suffix $suffix
+    $form.Close()
+})
+
+# Show the form
+$form.ShowDialog()
