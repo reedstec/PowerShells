@@ -1,5 +1,5 @@
 # Define the UPN of the account to add
-$accountToAdd = "it.admin@bernardmatthews.com"  # <-- Replace this
+$accountToAdd = "user@domain.com"  # <-- Replace this
 
 # Connect to Microsoft Graph
 Connect-MgGraph -Scopes "Group.Read.All", "Group.ReadWrite.All", "GroupMember.Read.All", "Directory.Read.All", "User.Read.All", "Team.ReadBasic.All"
