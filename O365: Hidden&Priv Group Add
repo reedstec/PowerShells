@@ -1,0 +1,98 @@
+# Define the UPN of the account to add
+$accountToAdd = "it.admin@bernardmatthews.com"  # <-- Replace this
+
+# Connect to Microsoft Graph
+Connect-MgGraph -Scopes "Group.Read.All", "Group.ReadWrite.All", "GroupMember.Read.All", "Directory.Read.All", "User.Read.All", "Team.ReadBasic.All"
+
+# Get user object
+$userToAdd = Get-MgUser -UserId $accountToAdd
+if (-not $userToAdd) {
+    Write-Error "User $accountToAdd not found."
+    return
+}
+
+# Get all M365 groups (Unified)
+$allGroups = Get-MgGroup -Filter "groupTypes/any(c:c eq 'Unified')" -All
+
+# Get all group settings
+$allSettings = Get-MgGroupSetting -All | Where-Object { $_.DisplayName -eq "Group.Unified" }
+
+# Prepare results array
+$results = @()
+
+foreach ($group in $allGroups) {
+    $isPrivate = $group.Visibility -eq "Private"
+    $isHiddenMembership = $false
+    $isTeamsGroup = $false
+
+    # Check for hidden membership
+    $groupSetting = $allSettings | Where-Object { $_.GroupId -eq $group.Id }
+    if ($groupSetting) {
+        if ($groupSetting.Values | Where-Object { $_.Name -eq "HideGroupMembership" -and $_.Value -eq "true" }) {
+            $isHiddenMembership = $true
+        }
+    }
+
+    # Check if group is a Team
+    try {
+        $team = Get-MgTeam -TeamId $group.Id -ErrorAction Stop
+        $isTeamsGroup = $true
+    } catch {
+        $isTeamsGroup = $false
+    }
+
+    # Apply the three-condition logic
+    $includeGroup = $false
+    if ($isPrivate -or $isHiddenMembership) {
+        $includeGroup = $true
+    } elseif ($isTeamsGroup -and ($isPrivate -or $isHiddenMembership)) {
+        $includeGroup = $true
+    }
+
+    if (-not $includeGroup) {
+        continue
+    }
+
+    # Get current owners and members
+    $owners = Get-MgGroupOwner -GroupId $group.Id -All
+    $members = Get-MgGroupMember -GroupId $group.Id -All
+
+    $ownerIds = $owners.Id
+    $memberIds = $members.Id
+
+    $addedMember = $false
+
+    # Only add as member if user is already owner and not yet a member
+    if (($userToAdd.Id -in $ownerIds) -and ($userToAdd.Id -notin $memberIds)) {
+        try {
+            $memberBody = @{
+                "@odata.id" = "https://graph.microsoft.com/v1.0/directoryObjects/$($userToAdd.Id)"
+            } | ConvertTo-Json -Depth 3
+
+            Invoke-MgGraphRequest -Method POST `
+                -Uri "https://graph.microsoft.com/v1.0/groups/$($group.Id)/members/`$ref" `
+                -Body $memberBody -ContentType "application/json"
+
+            $addedMember = $true
+        } catch {
+            Write-Warning "⚠️ Failed to add MEMBER to group '$($group.DisplayName)': $_"
+        }
+    }
+
+    # Log if added
+    if ($addedMember) {
+        $results += [PSCustomObject]@{
+            GroupName        = $group.DisplayName
+            GroupEmail       = $group.Mail
+            GroupId          = $group.Id
+            Visibility       = $group.Visibility
+            HiddenMembership = $isHiddenMembership
+            IsTeamsGroup     = $isTeamsGroup
+            AddedAsMember    = $true
+        }
+    }
+}
+
+# Export results
+$results | Export-Csv -Path "Groups_AddedAsMember.csv" -NoTypeInformation
+Write-Host "`Script completed. Results exported to 'Groups_AddedAsMember.csv'."
