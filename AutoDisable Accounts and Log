@@ -1,0 +1,26 @@
+Import-Module ActiveDirectory
+
+$daysInactive = 60
+$time = (Get-Date).AddDays(-$daysInactive)
+$logFile = "C:\AutoDisabledAccounts.txt"
+$today = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+
+# Get members of Domain Admins and Administrators groups
+$excludedGroupMembers = @()
+$excludedGroupMembers += Get-ADGroupMember -Identity "Domain Admins" -Recursive
+$excludedGroupMembers += Get-ADGroupMember -Identity "Administrators" -Recursive
+$excludedDNs = $excludedGroupMembers | Select-Object -ExpandProperty DistinguishedName
+
+# Find users who haven't logged in for 60+ days and are not in the excluded groups
+$staleUsers = Get-ADUser -Filter {LastLogonDate -lt $time -and Enabled -eq $true} -Properties LastLogonDate
+
+foreach ($user in $staleUsers) {
+    if ($excludedDNs -notcontains $user.DistinguishedName) {
+        Disable-ADAccount -Identity $user.SamAccountName
+        $logEntry = "$today - Disabled account: $($user.SamAccountName)"
+        Add-Content -Path $logFile -Value $logEntry
+        Write-Output $logEntry
+    } else {
+        Write-Output "Skipped admin account: $($user.SamAccountName)"
+    }
+}
